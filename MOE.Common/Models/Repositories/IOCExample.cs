@@ -5,12 +5,13 @@ using System.Text;
 using System.Threading.Tasks;
 using CommonServiceLocator;
 using GalaSoft.MvvmLight.Ioc;
+using MOE.Common.DataServices;
 
 namespace MOE.Common.Models.Repositories
 {
-    public class IOC
+    public class IOCExample
     {
-        public IOC()
+        public IOCExample()
         {
             //if the CommonServiceLocator.ServiceLocator provider has not been set, set it to an IServiceLocator implementation
             //in this case IServiceLocator is from MvvmLight's IoC implementation
@@ -34,6 +35,11 @@ namespace MOE.Common.Models.Repositories
                 //You can register multiple instances of IControllerEventLogRepository by giving it an instance name
                 SimpleIoc.Default.Register<IControllerEventLogRepository>(() => new ControllerEventLogRepository(), "Production");
                 SimpleIoc.Default.Register<IControllerEventLogRepository>(() => new ControllerEventLogRepositoryTest(), "Testing");
+
+
+                //this is how you can register different data services
+                SimpleIoc.Default.Register<IDataService>(() => new SqlDataService(new SPM()), "SQLDatabase");
+                SimpleIoc.Default.Register<IDataService>(() => new WebDataService(new Uri("https://coolwebservice.com")), "WebDatabase");
             }
         }
 

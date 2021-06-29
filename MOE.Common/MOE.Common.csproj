@@ -485,6 +485,7 @@
     <Compile Include="Business\WCFServiceLibrary\SignalAggregationMetricOptions.cs" />
     <Compile Include="Business\WCFServiceLibrary\ApproachAggregationMetricOptions.cs" />
     <Compile Include="Business\WCFServiceLibrary\ApproachSplitFailAggregationOptions.cs" />
+    <Compile Include="DataServices\IDataService.cs" />
     <Compile Include="Data\MOE.cs">
       <DependentUpon>MOE.xsd</DependentUpon>
     </Compile>
@@ -621,7 +622,7 @@
     <Compile Include="Models\PhaseEventCountAggregation.cs" />
     <Compile Include="Models\DetectorEventCountAggregation.cs" />
     <Compile Include="Models\Region.cs" />
-    <Compile Include="Models\Repositories\IOC.cs" />
+    <Compile Include="Models\Repositories\IOCExample.cs" />
     <Compile Include="Models\Repositories\IPhasePedAggregationRepository.cs" />
     <Compile Include="Models\Repositories\PhasePedAggregationRepository.cs" />
     <Compile Include="Models\Repositories\PhaseTerminationAggregationRepository.cs" />
@@ -985,6 +986,7 @@
     </Compile>
     <Compile Include="Business\RouteConsistencyCheck.cs" />
     <Compile Include="Business\SPMChartOptions.cs" />
+    <Compile Include="TableController\GenericTableController.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="App.config">
