@@ -23,14 +23,14 @@ namespace MOE.Common.Models.Repositories
                 //register all your services and stuff here:
 
                 //to register an entry you can map an interface to an object like this:
-                SimpleIoc.Default.Register<IControllerEventLogRepository, ControllerEventLogRepository>();
+                //SimpleIoc.Default.Register<IControllerEventLogRepository, ControllerEventLogRepository>();
 
                 //you can state that you want that object created right away, default is object is created when first called
                 //if it's already been created it doesn't create it again
-                SimpleIoc.Default.Register<IControllerEventLogRepository, ControllerEventLogRepository>(true);
+                //SimpleIoc.Default.Register<IControllerEventLogRepository, ControllerEventLogRepository>(true);
 
                 //if your object has a constructor or if you need to do some instructions on object creation you can pass over a factory function
-                SimpleIoc.Default.Register<IControllerEventLogRepository>(() => new ControllerEventLogRepository());
+                //SimpleIoc.Default.Register<IControllerEventLogRepository>(() => new ControllerEventLogRepository());
 
                 //You can register multiple instances of IControllerEventLogRepository by giving it an instance name
                 SimpleIoc.Default.Register<IControllerEventLogRepository>(() => new ControllerEventLogRepository(), "Production");

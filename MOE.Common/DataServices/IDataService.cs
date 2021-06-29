@@ -1,5 +1,6 @@
 ﻿using MOE.Common.Business.SiteSecurity;
 using MOE.Common.Models;
+using MOE.Common.Models.Extensions;
 using MOE.Common.TableController;
 using System;
 using System.Collections.Generic;
@@ -12,7 +13,7 @@ namespace MOE.Common.DataServices
 {
     public interface IDataService
     {
-        IGenericTableController<Signal> SignalController { get; }
+        IGenericTableController<Controller_Event_Log> EventLogController { get; }
     }
 
     //example SQL Data Service
@@ -25,7 +26,16 @@ namespace MOE.Common.DataServices
             _dbc = dbc;
         }
 
-        public IGenericTableController<Signal> SignalController {get; private set;} = new SQLTableController<Signal>(_dbc.Signals);
+        public IGenericTableController<Controller_Event_Log> EventLogController { get; private set;} = new SQLTableController<Controller_Event_Log>(_dbc.Controller_Event_Log);
+
+
+        public void TestMethods()
+        {
+            int test = 5;
+            test.ToPercent(10);
+
+            EventLogController.GetTopEventsAfterDateByEventCodesParam()
+        }
     }
 
     //example Web Data Service
@@ -38,6 +48,6 @@ namespace MOE.Common.DataServices
             _webService = webService;
         }
 
-        public IGenericTableController<Signal> SignalController { get; private set; } = new WebTableController<Signal>(_webService);
+        public IGenericTableController<Controller_Event_Log> EventLogController { get; private set; } = new WebTableController<Controller_Event_Log>(_webService);
     }
 }

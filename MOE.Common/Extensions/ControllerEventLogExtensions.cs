@@ -7,59 +7,28 @@ using System.Linq;
 using System.Reflection;
 using System.Web.Management;
 using Microsoft.EntityFrameworkCore.Internal;
-using CommonServiceLocator;
-using MOE.Common.DataServices;
+using MOE.Common.Models.Repositories;
+using MOE.Common.TableController;
 
-namespace MOE.Common.Models.Repositories
+namespace MOE.Common.Models.Extensions
 {
-    public abstract class RepositoryBase
+    public static class ControllerEventLogExtensions
     {
-        protected IDataService ds => ServiceLocator.Current.GetInstance<IDataService>();
-    }
-    
-    public class ControllerEventLogRepository : RepositoryBase, IControllerEventLogRepository
-    {
-        
-        private readonly SPM _db = new SPM();
-        public ControllerEventLogRepository(SPM db)
+        public static double ToPercent(this int a, int b)
         {
-            _db = db;
-
-            
-
-            //var i = 0;
-            //for ( i = 0; i < 10; i++)
-            //{
-            //    try
-            //    {
-
-            //        //_db.Database.CommandTimeout = 180;
-            //        db.Database.ExecuteSqlCommand("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;");
-            //        db.Configuration.AutoDetectChangesEnabled = false;
-            //        _db = db;
-            //        break;
-            //    }
-            //    catch 
-            //    {
-            //        Console.WriteLine(" Inside a catch statement for setting the TRANSACTION ISOLATION LEVEL."
-            //                          + "  Number of times is : {0}.", i);
-            //        Console.WriteLine("Now wait for 120 seconds.");
-            //        System.Threading.Thread.Sleep(120000);
-            //    }
-            //}
-        }
-        public ControllerEventLogRepository()
-        {
-            //_db.Database.CommandTimeout = 180;
-            //_db.Database.ExecuteSqlCommand("SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;");
-            //_db.Configuration.AutoDetectChangesEnabled = false;
+            return (a / b * 100);
         }
 
-        public int GetRecordCountByParameterAndEvent(string signalId, DateTime startTime, DateTime endTime,
+        public static double ToPercent(this double a, double b)
+        {
+            return (a / b * 100);
+        }
+
+        public static int GetRecordCountByParameterAndEvent(this IGenericTableController<Controller_Event_Log> controller, string signalId, DateTime startTime, DateTime endTime,
             List<int> eventParameters,
             List<int> eventCodes)
         {
-            var query = ds.EventLogController.Query.Where(c =>
+            var query = controller.Query.Where(c =>
                 c.SignalID == signalId && c.Timestamp >= startTime && c.Timestamp <= endTime);
             if (eventParameters != null && eventParameters.Count > 0)
                 query = query.Where(c => eventParameters.Contains(c.EventParam));
@@ -68,10 +37,10 @@ namespace MOE.Common.Models.Repositories
             return query.Count();
         }
 
-        public List<Controller_Event_Log> GetRecordsByParameterAndEvent(string signalId, DateTime startTime,
+        public static List<Controller_Event_Log> GetRecordsByParameterAndEvent(this IGenericTableController<Controller_Event_Log> controller, string signalId, DateTime startTime,
             DateTime endTime, List<int> eventParameters, List<int> eventCodes)
         {
-            var query = _db.Controller_Event_Log.Where(c =>
+            var query = controller.Query.Where(c =>
                 c.SignalID == signalId && c.Timestamp >= startTime && c.Timestamp <= endTime);
             if (eventParameters != null && eventParameters.Count > 0)
                 query = query.Where(c => eventParameters.Contains(c.EventParam));
@@ -80,20 +49,20 @@ namespace MOE.Common.Models.Repositories
             return query.ToList();
         }
 
-        public List<Controller_Event_Log> GetAllAggregationCodes(string signalId, DateTime startTime, DateTime endTime)
+        public static List<Controller_Event_Log> GetAllAggregationCodes(this IGenericTableController<Controller_Event_Log> controller, string signalId, DateTime startTime, DateTime endTime)
         {
             var codes = new List<int> { 150, 114, 113, 112, 105, 102, 1 };
-            var records = _db.Controller_Event_Log
+            var records = controller.Query
                 .Where(c => c.SignalID == signalId && c.Timestamp >= startTime && c.Timestamp <= endTime &&
                             codes.Contains(c.EventCode))
                 .ToList();
             return records;
         }
 
-        public int GetDetectorActivationCount(string signalId,
+        public static int GetDetectorActivationCount(this IGenericTableController<Controller_Event_Log> controller, string signalId,
             DateTime startTime, DateTime endTime, int detectorChannel)
         {
-            var count = (from cel in _db.Controller_Event_Log
+            var count = (from cel in controller.Query
                          where cel.Timestamp >= startTime
                                && cel.Timestamp < endTime
                                && cel.SignalID == signalId
@@ -103,7 +72,7 @@ namespace MOE.Common.Models.Repositories
             return count;
         }
 
-        public double GetTmcVolume(DateTime startDate, DateTime endDate, string signalId, int phase)
+        public static double GetTmcVolume(this IGenericTableController<Controller_Event_Log> controller, DateTime startDate, DateTime endDate, string signalId, int phase)
         {
             var repository =
                 SignalsRepositoryFactory.Create();
@@ -117,7 +86,7 @@ namespace MOE.Common.Models.Repositories
                         tmcChannels.Add(gd.DetChannel);
 
 
-            double count = (from cel in _db.Controller_Event_Log
+            double count = (from cel in controller.Query
                             where cel.Timestamp >= startDate
                                   && cel.Timestamp < endDate
                                   && cel.SignalID == signalId
@@ -128,9 +97,9 @@ namespace MOE.Common.Models.Repositories
             return count;
         }
 
-        public List<Controller_Event_Log> GetSplitEvents(string signalId, DateTime startTime, DateTime endTime)
+        public static List<Controller_Event_Log> GetSplitEvents(this IGenericTableController<Controller_Event_Log> controller, string signalId, DateTime startTime, DateTime endTime)
         {
-            var results = (from r in _db.Controller_Event_Log
+            var results = (from r in controller.Query
                            where r.SignalID == signalId && r.Timestamp > startTime && r.Timestamp < endTime
                                  && r.EventCode > 130 && r.EventCode < 150
                            select r).ToList();
@@ -138,12 +107,12 @@ namespace MOE.Common.Models.Repositories
             return results;
         }
 
-        public List<Controller_Event_Log> GetSignalEventsBetweenDates(string signalId,
+        public static List<Controller_Event_Log> GetSignalEventsBetweenDates(this IGenericTableController<Controller_Event_Log> controller, string signalId,
             DateTime startTime, DateTime endTime)
         {
             try
             {
-                return (from r in _db.Controller_Event_Log
+                return (from r in controller.Query
                         where r.SignalID == signalId
                               && r.Timestamp >= startTime
                               && r.Timestamp < endTime
@@ -155,7 +124,7 @@ namespace MOE.Common.Models.Repositories
                     ApplicationEventRepositoryFactory.Create();
                 var e = new ApplicationEvent();
                 e.ApplicationName = "MOE.Common";
-                e.Class = GetType().ToString();
+                //e.Class = GetType().ToString();
                 e.Function = "GetSignalEventsBetweenDates";
                 e.SeverityLevel = ApplicationEvent.SeverityLevels.High;
                 e.Timestamp = DateTime.Now;
@@ -165,13 +134,13 @@ namespace MOE.Common.Models.Repositories
             }
         }
 
-        public List<Controller_Event_Log> GetTopNumberOfSignalEventsBetweenDates(string signalId, int numberOfRecords,
+        public static List<Controller_Event_Log> GetTopNumberOfSignalEventsBetweenDates(this IGenericTableController<Controller_Event_Log> controller, string signalId, int numberOfRecords,
             DateTime startTime, DateTime endTime)
         {
             try
             {
                 var events =
-                (from r in _db.Controller_Event_Log
+                (from r in controller.Query
                  where r.SignalID == signalId
                        && r.Timestamp >= startTime
                        && r.Timestamp < endTime
@@ -188,7 +157,7 @@ namespace MOE.Common.Models.Repositories
                     ApplicationEventRepositoryFactory.Create();
                 var e = new ApplicationEvent();
                 e.ApplicationName = "MOE.Common";
-                e.Class = GetType().ToString();
+                //e.Class = GetType().ToString();
                 e.Function = "GetTopNumberOfSignalEventsBetweenDates";
                 e.SeverityLevel = ApplicationEvent.SeverityLevels.High;
                 e.Timestamp = DateTime.Now;
@@ -198,11 +167,11 @@ namespace MOE.Common.Models.Repositories
             }
         }
 
-        public int GetRecordCount(string signalId, DateTime startTime, DateTime endTime)
+        public static int GetRecordCount(this IGenericTableController<Controller_Event_Log> controller, string signalId, DateTime startTime, DateTime endTime)
         {
             try
             {
-                return _db.Controller_Event_Log.Count(r => r.SignalID == signalId
+                return controller.Query.Count(r => r.SignalID == signalId
                                                            && r.Timestamp >= startTime
                                                            && r.Timestamp < endTime);
             }
@@ -212,7 +181,7 @@ namespace MOE.Common.Models.Repositories
                     ApplicationEventRepositoryFactory.Create();
                 var e = new ApplicationEvent();
                 e.ApplicationName = "MOE.Common";
-                e.Class = GetType().ToString();
+                //e.Class = GetType().ToString();
                 e.Function = "GetRecordCount";
                 e.SeverityLevel = ApplicationEvent.SeverityLevels.High;
                 e.Timestamp = DateTime.Now;
@@ -222,11 +191,11 @@ namespace MOE.Common.Models.Repositories
             }
         }
 
-        public bool CheckForRecords(string signalId, DateTime startTime, DateTime endTime)
+        public static bool CheckForRecords(this IGenericTableController<Controller_Event_Log> controller, string signalId, DateTime startTime, DateTime endTime)
         {
             try
             {
-                return _db.Controller_Event_Log.Any(r => r.SignalID == signalId
+                return controller.Query.Any(r => r.SignalID == signalId
                                                          && r.Timestamp >= startTime
                                                          && r.Timestamp < endTime);
             }
@@ -236,7 +205,7 @@ namespace MOE.Common.Models.Repositories
                     ApplicationEventRepositoryFactory.Create();
                 var e = new ApplicationEvent();
                 e.ApplicationName = "MOE.Common";
-                e.Class = GetType().ToString();
+                //e.Class = GetType().ToString();
                 e.Function = "CheckForRecords";
                 e.SeverityLevel = ApplicationEvent.SeverityLevels.High;
                 e.Timestamp = DateTime.Now;
@@ -247,12 +216,12 @@ namespace MOE.Common.Models.Repositories
         }
 
 
-        public List<Controller_Event_Log> GetSignalEventsByEventCode(string signalId,
+        public static List<Controller_Event_Log> GetSignalEventsByEventCode(this IGenericTableController<Controller_Event_Log> controller, string signalId,
             DateTime startTime, DateTime endTime, int eventCode)
         {
             try
             {
-                return (from r in _db.Controller_Event_Log
+                return (from r in controller.Query
                         where r.SignalID == signalId
                               && r.Timestamp >= startTime
                               && r.Timestamp < endTime
@@ -265,7 +234,7 @@ namespace MOE.Common.Models.Repositories
                     ApplicationEventRepositoryFactory.Create();
                 var e = new ApplicationEvent();
                 e.ApplicationName = "MOE.Common";
-                e.Class = GetType().ToString();
+                //e.Class = GetType().ToString();
                 e.Function = "GetSignalEventsByEventCode";
                 e.SeverityLevel = ApplicationEvent.SeverityLevels.High;
                 e.Timestamp = DateTime.Now;
@@ -275,12 +244,12 @@ namespace MOE.Common.Models.Repositories
             }
         }
 
-        public List<Controller_Event_Log> GetSignalEventsByEventCodes(string signalId,
+        public static List<Controller_Event_Log> GetSignalEventsByEventCodes(this IGenericTableController<Controller_Event_Log> controller, string signalId,
             DateTime startTime, DateTime endTime, List<int> eventCodes)
         {
             try
             {
-                var events = (from s in _db.Controller_Event_Log
+                var events = (from s in controller.Query
                               where s.SignalID == signalId &&
                                     s.Timestamp >= startTime &&
                                     s.Timestamp <= endTime &&
@@ -300,7 +269,7 @@ namespace MOE.Common.Models.Repositories
                     ApplicationEventRepositoryFactory.Create();
                 var e = new ApplicationEvent();
                 e.ApplicationName = "MOE.Common";
-                e.Class = GetType().ToString();
+                //e.Class = GetType().ToString();
                 e.Function = "GetSignalEventsByEventCodes";
                 e.SeverityLevel = ApplicationEvent.SeverityLevels.High;
                 e.Timestamp = DateTime.Now;
@@ -310,12 +279,12 @@ namespace MOE.Common.Models.Repositories
             }
         }
 
-        public List<Controller_Event_Log> GetEventsByEventCodesParam(string signalId, DateTime startTime,
+        public static List<Controller_Event_Log> GetEventsByEventCodesParam(this IGenericTableController<Controller_Event_Log> controller, string signalId, DateTime startTime,
             DateTime endTime, List<int> eventCodes, int param)
         {
             try
             {
-                var events = _db.Controller_Event_Log.Where(s => s.SignalID == signalId &&
+                var events = controller.Query.Where(s => s.SignalID == signalId &&
                                    s.Timestamp >= startTime &&
                                    s.Timestamp <= endTime &&
                                    s.EventParam == param &&
@@ -329,7 +298,7 @@ namespace MOE.Common.Models.Repositories
                     ApplicationEventRepositoryFactory.Create();
                 var e = new ApplicationEvent();
                 e.ApplicationName = "MOE.Common";
-                e.Class = GetType().ToString();
+                //e.Class = GetType().ToString();
                 e.Function = "GetEventsByEventCodesParam";
                 e.SeverityLevel = ApplicationEvent.SeverityLevels.High;
                 e.Timestamp = DateTime.Now;
@@ -339,13 +308,13 @@ namespace MOE.Common.Models.Repositories
             }
         }
 
-        public List<Controller_Event_Log> GetTopEventsAfterDateByEventCodesParam(string signalId,
+        public static List<Controller_Event_Log> GetTopEventsAfterDateByEventCodesParam(this IGenericTableController<Controller_Event_Log> controller, string signalId,
             DateTime timestamp, List<int> eventCodes, int param, int top)
         {
             try
             {
                 var endDate = timestamp.AddHours(1);
-                var events = _db.Controller_Event_Log.Where(c =>
+                var events = controller.Query.Where(c =>
                     c.SignalID == signalId &&
                     c.Timestamp > timestamp &&
                     c.Timestamp < endDate &&
@@ -358,21 +327,20 @@ namespace MOE.Common.Models.Repositories
             catch (Exception e)
             {
                 var errorLog = ApplicationEventRepositoryFactory.Create();
-                errorLog.QuickAdd(Assembly.GetExecutingAssembly().FullName,
-                    GetType().DisplayName(), e.TargetSite.ToString(), ApplicationEvent.SeverityLevels.Low, e.Message);
+                //errorLog.QuickAdd(Assembly.GetExecutingAssembly().FullName, GetType().DisplayName(), e.TargetSite.ToString(), ApplicationEvent.SeverityLevels.Low, e.Message);
                 return null;
             }
         }
 
 
-        public int GetEventCountByEventCodesParamDateTimeRange(string signalId,
+        public static int GetEventCountByEventCodesParamDateTimeRange(this IGenericTableController<Controller_Event_Log> controller, string signalId,
             DateTime startTime, DateTime endTime, int startHour, int startMinute, int endHour, int endMinute,
             List<int> eventCodes, int param)
         {
             try
             {
                 return
-                (from s in _db.Controller_Event_Log
+                (from s in controller.Query
                  where s.SignalID == signalId &&
                        s.Timestamp >= startTime &&
                        s.Timestamp <= endTime &&
@@ -394,7 +362,7 @@ namespace MOE.Common.Models.Repositories
                     ApplicationEventRepositoryFactory.Create();
                 var e = new ApplicationEvent();
                 e.ApplicationName = "MOE.Common";
-                e.Class = GetType().ToString();
+                //e.Class = GetType().ToString();
                 e.Function = "GetEventCountByEventCodesParamDateTimeRange";
                 e.SeverityLevel = ApplicationEvent.SeverityLevels.High;
                 e.Timestamp = DateTime.Now;
@@ -405,13 +373,13 @@ namespace MOE.Common.Models.Repositories
         }
 
 
-        public List<Controller_Event_Log> GetEventsByEventCodesParamDateTimeRange(string signalId,
+        public static List<Controller_Event_Log> GetEventsByEventCodesParamDateTimeRange(this IGenericTableController<Controller_Event_Log> controller, string signalId,
             DateTime startTime, DateTime endTime, int startHour, int startMinute, int endHour, int endMinute,
             List<int> eventCodes, int param)
         {
             try
             {
-                var events = (from s in _db.Controller_Event_Log
+                var events = (from s in controller.Query
                               where s.SignalID == signalId &&
                                     s.Timestamp >= startTime &&
                                     s.Timestamp <= endTime &&
@@ -435,7 +403,7 @@ namespace MOE.Common.Models.Repositories
                     ApplicationEventRepositoryFactory.Create();
                 var e = new ApplicationEvent();
                 e.ApplicationName = "MOE.Common";
-                e.Class = GetType().ToString();
+                //e.Class = GetType().ToString();
                 e.Function = "GetSignalEventsByEventCodesParamDateTimeRange";
                 e.SeverityLevel = ApplicationEvent.SeverityLevels.High;
                 e.Timestamp = DateTime.Now;
@@ -446,14 +414,14 @@ namespace MOE.Common.Models.Repositories
         }
 
 
-        public List<Controller_Event_Log> GetEventsByEventCodesParamWithOffsetAndLatencyCorrection(string signalId,
+        public static List<Controller_Event_Log> GetEventsByEventCodesParamWithOffsetAndLatencyCorrection(this IGenericTableController<Controller_Event_Log> controller, string signalId,
             DateTime startTime, DateTime endTime, List<int> eventCodes, int param, double offset,
             double latencyCorrection)
         {
 
             try
             {
-                var events = (from s in _db.Controller_Event_Log
+                var events = (from s in controller.Query
                               where s.SignalID == signalId &&
                                     s.Timestamp >= startTime &&
                                     s.Timestamp <= endTime &&
@@ -474,7 +442,7 @@ namespace MOE.Common.Models.Repositories
                     ApplicationEventRepositoryFactory.Create();
                 var e = new ApplicationEvent();
                 e.ApplicationName = "MOE.Common";
-                e.Class = GetType().ToString();
+                //e.Class = GetType().ToString();
                 e.Function = "GetEventsByEventCodesParamWithOffsetAndLatencyCorrection";
                 e.SeverityLevel = ApplicationEvent.SeverityLevels.High;
                 e.Timestamp = DateTime.Now;
@@ -484,12 +452,12 @@ namespace MOE.Common.Models.Repositories
             }
         }
 
-        public List<Controller_Event_Log> GetEventsByEventCodesParamWithLatencyCorrection(string signalId,
+        public static List<Controller_Event_Log> GetEventsByEventCodesParamWithLatencyCorrection(this IGenericTableController<Controller_Event_Log> controller, string signalId,
             DateTime startTime, DateTime endTime, List<int> eventCodes, int param, double latencyCorrection)
         {
             try
             {
-                var events = _db.Controller_Event_Log.Where(s => s.SignalID == signalId &&
+                var events = controller.Query.Where(s => s.SignalID == signalId &&
                           s.Timestamp >= startTime &&
                           s.Timestamp <= endTime &&
                           s.EventParam == param &&
@@ -506,7 +474,7 @@ namespace MOE.Common.Models.Repositories
                     ApplicationEventRepositoryFactory.Create();
                 var e = new ApplicationEvent();
                 e.ApplicationName = "MOE.Common";
-                e.Class = GetType().ToString();
+                //e.Class = GetType().ToString();
                 e.Function = "GetEventsByEventCodesParamWithLatencyCorrection";
                 e.SeverityLevel = ApplicationEvent.SeverityLevels.High;
                 e.Timestamp = DateTime.Now;
@@ -516,13 +484,13 @@ namespace MOE.Common.Models.Repositories
             }
         }
 
-        public Controller_Event_Log GetFirstEventBeforeDate(string signalId,
+        public static Controller_Event_Log GetFirstEventBeforeDate(this IGenericTableController<Controller_Event_Log> controller, string signalId,
             int eventCode, DateTime date)
         {
             try
             {
                 var tempDate = date.AddHours(-1);
-                var lastEvent = _db.Controller_Event_Log.Where(c => c.SignalID == signalId &&
+                var lastEvent = controller.Query.Where(c => c.SignalID == signalId &&
                                                                     c.Timestamp >= tempDate &&
                                                                     c.Timestamp < date &&
                                                                     c.EventCode == eventCode)
@@ -534,7 +502,7 @@ namespace MOE.Common.Models.Repositories
                 var logRepository = ApplicationEventRepositoryFactory.Create();
                 var e = new ApplicationEvent();
                 e.ApplicationName = "MOE.Common";
-                e.Class = GetType().ToString();
+                //e.Class = GetType().ToString();
                 e.Function = "GetEventsByEventCodesParamWithOffsetAndLatencyCorrection";
                 e.SeverityLevel = ApplicationEvent.SeverityLevels.High;
                 e.Description = ex.Message;
@@ -544,16 +512,16 @@ namespace MOE.Common.Models.Repositories
             }
         }
 
-        public Controller_Event_Log GetFirstEventBeforeDateByEventCodeAndParameter(string signalId, int eventCode,
+        public static Controller_Event_Log GetFirstEventBeforeDateByEventCodeAndParameter(this IGenericTableController<Controller_Event_Log> controller, string signalId, int eventCode,
             int eventParam, DateTime date)
         {
             if (!String.IsNullOrEmpty(signalId))
             {
                 try
                 {
-                    _db.Database.CommandTimeout = 10;
+                    //_db.Database.CommandTimeout = 10;
                     var tempDate = date.AddDays(-1);
-                    var lastEvent = _db.Controller_Event_Log.Where(c => c.SignalID == signalId &&
+                    var lastEvent = controller.Query.Where(c => c.SignalID == signalId &&
                                                                         c.Timestamp >= tempDate &&
                                                                         c.Timestamp < date &&
                                                                         c.EventCode == eventCode &&
@@ -567,7 +535,7 @@ namespace MOE.Common.Models.Repositories
                     var logRepository = ApplicationEventRepositoryFactory.Create();
                     var e = new ApplicationEvent();
                     e.ApplicationName = "MOE.Common";
-                    e.Class = GetType().ToString();
+                    //e.Class = GetType().ToString();
                     e.Function = "GetEventsByEventCodesParamWithOffsetAndLatencyCorrection";
                     e.SeverityLevel = ApplicationEvent.SeverityLevels.High;
                     e.Description = ex.Message;
@@ -580,36 +548,36 @@ namespace MOE.Common.Models.Repositories
             return null;
         }
 
-        public int GetSignalEventsCountBetweenDates(string signalId, DateTime startTime, DateTime endTime)
+        public static int GetSignalEventsCountBetweenDates(this IGenericTableController<Controller_Event_Log> controller, string signalId, DateTime startTime, DateTime endTime)
         {
-            return _db.Controller_Event_Log.Count(r => r.SignalID == signalId &&
+            return controller.Query.Count(r => r.SignalID == signalId &&
                                                 r.Timestamp >= startTime
                                                 && r.Timestamp < endTime);
         }
 
-        public List<Controller_Event_Log> GetEventsBetweenDates(DateTime startTime, DateTime endTime)
+        public static List<Controller_Event_Log> GetEventsBetweenDates(this IGenericTableController<Controller_Event_Log> controller, DateTime startTime, DateTime endTime)
         {
-            return _db.Controller_Event_Log.Where(r => r.Timestamp >= startTime
+            return controller.Query.Where(r => r.Timestamp >= startTime
                                                        && r.Timestamp < endTime).ToList();
         }
 
-        public int GetApproachEventsCountBetweenDates(int approachId, DateTime startTime, DateTime endTime,
+        public static int GetApproachEventsCountBetweenDates(this IGenericTableController<Controller_Event_Log> controller, int approachId, DateTime startTime, DateTime endTime,
             int phaseNumber)
         {
             var approachCodes = new List<int> { 1, 8, 10 };
             var ar = ApproachRepositoryFactory.Create();
             Approach approach = ar.GetApproachByApproachID(approachId);
 
-            var results = _db.Controller_Event_Log.Where(r =>
+            var results = controller.Query.Where(r =>
                 r.SignalID == approach.SignalID && r.Timestamp > startTime && r.Timestamp < endTime
                 && approachCodes.Contains(r.EventCode) && r.EventParam == phaseNumber);
 
             return results.Count();
         }
 
-        public DateTime GetMostRecentRecordTimestamp(string signalID)
+        public static DateTime GetMostRecentRecordTimestamp(this IGenericTableController<Controller_Event_Log> controller, string signalID)
         {
-            MOE.Common.Models.Controller_Event_Log row = (from r in _db.Controller_Event_Log
+            MOE.Common.Models.Controller_Event_Log row = (from r in controller.Query
                 where r.SignalID == signalID
                 orderby r.Timestamp descending
                 select r).Take(1).FirstOrDefault();

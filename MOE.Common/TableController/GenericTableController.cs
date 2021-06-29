@@ -27,7 +27,7 @@ namespace MOE.Common.TableController
     /// Example of IGenericTableController on Entity Framework
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class SQLTableController<T> : IGenericTableController<T> where T : Signal
+    public class SQLTableController<T> : IGenericTableController<T> where T : ModelBase
     {
         private DbSet<T> _dataSet;
 
@@ -68,7 +68,7 @@ namespace MOE.Common.TableController
     /// Example of IGenericTableController on a web service
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class WebTableController<T> : IGenericTableController<T> where T : Signal
+    public class WebTableController<T> : IGenericTableController<T> where T : ModelBase
     {
         private Uri _webServiceBase;
 
