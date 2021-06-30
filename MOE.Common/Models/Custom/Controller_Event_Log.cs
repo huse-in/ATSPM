@@ -6,11 +6,6 @@ using CsvHelper.Configuration;
 
 namespace MOE.Common.Models
 {
-    public abstract class ModelBase
-    {
-
-    }
-    
     public class Controller_Event_Log : ModelBase
     {
         [SuppressMessage("Microsoft.Usage", "CA2214:DoNotCallOverridableMethodsInConstructors")]
